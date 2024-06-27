@@ -17,6 +17,7 @@
           "default": "4.0"
         },
         "path_generation_method": {
+          "type": "string",
           "enum": ["shift_line_base", "optimization_base", "both"],
           "description": "Path generation method.",
           "default": "shift_line_base"
@@ -925,6 +926,11 @@
               "type": "integer",
               "description": "Hysteresis count that be used for chattering prevention.",
               "default": 10
+            },
+            "collision_check_yaw_diff_threshold": {
+              "type": "number",
+              "description": "Max yaw difference between ego and object when doing collision check",
+              "default": 3.1416
             },
             "min_velocity": {
               "type": "number",
