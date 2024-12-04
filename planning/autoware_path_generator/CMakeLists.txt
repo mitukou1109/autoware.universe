@@ -28,6 +28,7 @@ rclcpp_components_register_node(${PROJECT_NAME}
 if(BUILD_TESTING)
   ament_add_ros_isolated_gtest(test_${PROJECT_NAME}
     test/test_path_generator_node_interface.cpp
+    test/test_utils.cpp
   )
   target_link_libraries(test_${PROJECT_NAME}
     ${PROJECT_NAME}
@@ -37,4 +38,5 @@ endif()
 ament_auto_package(
   INSTALL_TO_SHARE
     config
+    test_route
 )
