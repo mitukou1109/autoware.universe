@@ -373,6 +373,23 @@ void MinimumRuleBasedPlannerNode::on_timer()
       to_string(stop_result.stop_stop_point->type));
   }
 
+  if (
+    trajectory_stops_at_goal(go_trajectory) &&
+    go_planning_factor_interface_->get_factors().empty()) {
+    go_planning_factor_interface_->add(
+      0.0, go_trajectory.points.back().pose,
+      autoware_internal_planning_msgs::msg::PlanningFactor::STOP,
+      autoware_internal_planning_msgs::msg::SafetyFactorArray{});
+  }
+  if (
+    stop_trajectory && trajectory_stops_at_goal(*stop_trajectory) &&
+    stop_planning_factor_interface_->get_factors().empty()) {
+    stop_planning_factor_interface_->add(
+      0.0, stop_trajectory->points.back().pose,
+      autoware_internal_planning_msgs::msg::PlanningFactor::STOP,
+      autoware_internal_planning_msgs::msg::SafetyFactorArray{});
+  }
+
   go_planning_factor_interface_->publish();
   stop_planning_factor_interface_->publish();
 
@@ -557,6 +574,18 @@ Trajectory MinimumRuleBasedPlannerNode::optimize_velocity(
   traj.header = trajectory.header;
   traj.points = trajectory_points;
   return traj;
+}
+
+bool MinimumRuleBasedPlannerNode::trajectory_stops_at_goal(const Trajectory & trajectory) const
+{
+  if (trajectory.points.empty()) {
+    return false;
+  }
+
+  const auto goal_pose = path_planner_->route_context().goal_pose;
+  const auto dist_to_goal =
+    autoware_utils::calc_distance2d(trajectory.points.back().pose, goal_pose);
+  return dist_to_goal <= params_.path_planning.smooth_goal_connection.pre_goal_offset;
 }
 
 void MinimumRuleBasedPlannerNode::publish_candidate_trajectories(
