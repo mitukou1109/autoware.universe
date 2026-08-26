@@ -374,7 +374,7 @@ void MinimumRuleBasedPlannerNode::on_timer()
   }
 
   if (
-    trajectory_stops_at_goal(go_trajectory) &&
+    trajectory_ends_at_goal(go_trajectory) &&
     go_planning_factor_interface_->get_factors().empty()) {
     go_planning_factor_interface_->add(
       0.0, go_trajectory.points.back().pose,
@@ -382,7 +382,7 @@ void MinimumRuleBasedPlannerNode::on_timer()
       autoware_internal_planning_msgs::msg::SafetyFactorArray{});
   }
   if (
-    stop_trajectory && trajectory_stops_at_goal(*stop_trajectory) &&
+    stop_trajectory && trajectory_ends_at_goal(*stop_trajectory) &&
     stop_planning_factor_interface_->get_factors().empty()) {
     stop_planning_factor_interface_->add(
       0.0, stop_trajectory->points.back().pose,
@@ -580,7 +580,7 @@ Trajectory MinimumRuleBasedPlannerNode::optimize_velocity(
   return traj;
 }
 
-bool MinimumRuleBasedPlannerNode::trajectory_stops_at_goal(const Trajectory & trajectory) const
+bool MinimumRuleBasedPlannerNode::trajectory_ends_at_goal(const Trajectory & trajectory) const
 {
   if (trajectory.points.empty()) {
     return false;

@@ -83,7 +83,7 @@ private:
     const Trajectory & trajectory, const InputData & input_data,
     const bool update_smoother_state) const;
 
-  bool trajectory_stops_at_goal(const Trajectory & trajectory) const;
+  bool trajectory_ends_at_goal(const Trajectory & trajectory) const;
 
   void publish_candidate_trajectories(
     const Trajectory & go_trajectory, const std::optional<Trajectory> & stop_trajectory) const;
