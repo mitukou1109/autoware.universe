@@ -81,6 +81,25 @@ void assign_time_from_start(
     traj_points.at(i).time_from_start = rclcpp::Duration::from_seconds(times.at(i) - ego_time);
   }
 }
+
+//! Convert "autoware::...::ObstacleStop" to "obstacle_stop"
+std::string get_short_plugin_name(const std::string & plugin_name)
+{
+  const std::string class_name = plugin_name.find("::") != std::string::npos
+                                   ? plugin_name.substr(plugin_name.rfind("::") + 2)
+                                   : plugin_name;
+  std::string short_name;
+  for (size_t i = 0; i < class_name.size(); ++i) {
+    if (std::isupper(class_name[i])) {
+      if (i > 0) short_name += '_';
+      short_name += static_cast<char>(std::tolower(class_name[i]));
+    } else {
+      short_name += class_name[i];
+    }
+  }
+
+  return short_name;
+}
 }  // namespace
 
 MinimumRuleBasedPlannerNode::MinimumRuleBasedPlannerNode(const rclcpp::NodeOptions & options)
@@ -225,23 +244,7 @@ void MinimumRuleBasedPlannerNode::load_plugin(const std::string & name)
     const auto plugin = modifier_plugin_loader_.createSharedInstance(name);
     plugin->initialize(name, this, time_keeper_, modifier_context_, params_);
 
-    // Convert "autoware::...::ObstacleStop" to "obstacle_stop"
-    const auto short_name = [](const std::string & plugin_name) {
-      const std::string class_name = plugin_name.find("::") != std::string::npos
-                                       ? plugin_name.substr(plugin_name.rfind("::") + 2)
-                                       : plugin_name;
-      std::string short_name;
-      for (size_t i = 0; i < class_name.size(); ++i) {
-        if (std::isupper(class_name[i])) {
-          if (i > 0) short_name += '_';
-          short_name += static_cast<char>(std::tolower(class_name[i]));
-        } else {
-          short_name += class_name[i];
-        }
-      }
-
-      return short_name;
-    }(name);
+    const auto short_name = get_short_plugin_name(name);
 
     pub_debug_modifier_module_trajectories_[plugin->get_name()] =
       this->create_publisher<Trajectory>("~/debug/modifier/" + short_name + "/trajectory", 1);
@@ -370,6 +373,23 @@ void MinimumRuleBasedPlannerNode::on_timer()
       to_string(stop_result.stop_stop_point->type));
   }
 
+  if (
+    trajectory_ends_at_goal(go_trajectory) &&
+    go_planning_factor_interface_->get_factors().empty()) {
+    go_planning_factor_interface_->add(
+      0.0, go_trajectory.points.back().pose,
+      autoware_internal_planning_msgs::msg::PlanningFactor::STOP,
+      autoware_internal_planning_msgs::msg::SafetyFactorArray{});
+  }
+  if (
+    stop_trajectory && trajectory_ends_at_goal(*stop_trajectory) &&
+    stop_planning_factor_interface_->get_factors().empty()) {
+    stop_planning_factor_interface_->add(
+      0.0, stop_trajectory->points.back().pose,
+      autoware_internal_planning_msgs::msg::PlanningFactor::STOP,
+      autoware_internal_planning_msgs::msg::SafetyFactorArray{});
+  }
+
   go_planning_factor_interface_->publish();
   stop_planning_factor_interface_->publish();
 
@@ -487,6 +507,17 @@ void MinimumRuleBasedPlannerNode::apply_modifiers(
   for (auto & modifier : modifier_plugins_) {
     autoware_utils_debug::ScopedTimeTrack st_modifier(modifier->get_name(), *time_keeper_);
     modifier->run(trajectory.points, modifier_data);
+    for (const auto & planning_factor : modifier->get_planning_factors()) {
+      if (planning_factor.control_points.empty()) {
+        continue;
+      }
+      const auto & control_point = planning_factor.control_points.front();
+      go_planning_factor_interface_->add(
+        control_point.distance, control_point.pose,
+        autoware_internal_planning_msgs::msg::PlanningFactor::STOP,
+        autoware_internal_planning_msgs::msg::SafetyFactorArray{}, true, 0.0, 0.0,
+        get_short_plugin_name(modifier->get_name()));
+    }
     modifier->publish_planning_factor();
     if (params_.debug.enable_modifier_trajectory) {
       publish_debug_trajectory(modifier->get_name(), trajectory.points);
@@ -547,6 +578,18 @@ Trajectory MinimumRuleBasedPlannerNode::optimize_velocity(
   traj.header = trajectory.header;
   traj.points = trajectory_points;
   return traj;
+}
+
+bool MinimumRuleBasedPlannerNode::trajectory_ends_at_goal(const Trajectory & trajectory) const
+{
+  if (trajectory.points.empty()) {
+    return false;
+  }
+
+  const auto goal_pose = path_planner_->route_context().goal_pose;
+  const auto dist_to_goal =
+    autoware_utils::calc_distance2d(trajectory.points.back().pose, goal_pose);
+  return dist_to_goal <= params_.path_planning.smooth_goal_connection.pre_goal_offset;
 }
 
 void MinimumRuleBasedPlannerNode::publish_candidate_trajectories(
