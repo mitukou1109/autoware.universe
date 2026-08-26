@@ -50,7 +50,7 @@ class ObstacleStop : public PluginInterface
 public:
   ObstacleStop() = default;
 
-  std::optional<StopPoint> run(TrajectoryPoints & traj_points, const ModifierData & data) override;
+  void run(TrajectoryPoints & traj_points, const ModifierData & data) override;
 
   void update_params(const MinimumRuleBasedPlannerParams & params) override
   {
@@ -132,8 +132,7 @@ private:
   std::optional<CollisionPoint> get_nearest_collision_point(
     const std::vector<CollisionPoint> & collision_points_buffer) const;
 
-  std::optional<StopPoint> set_stop_point(
-    TrajectoryPoints & traj_points, const ModifierData & data);
+  void set_stop_point(TrajectoryPoints & traj_points, const ModifierData & data);
 
   void publish_debug_string(bool is_safe) const;
   void publish_debug_data(const std::string & ns, const ModifierData & data) const;

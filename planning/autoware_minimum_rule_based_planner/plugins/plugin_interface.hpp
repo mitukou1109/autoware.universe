@@ -74,11 +74,6 @@ struct ModifierContext
   tf2_ros::TransformListener tf_listener;
 };
 
-struct StopPoint
-{
-  geometry_msgs::msg::Pose pose;
-};
-
 class PluginInterface
 {
 public:
@@ -98,8 +93,7 @@ public:
   }
 
   virtual ~PluginInterface() = default;
-  virtual std::optional<StopPoint> run(
-    TrajectoryPoints & traj_points, const ModifierData & modifier_data) = 0;
+  virtual void run(TrajectoryPoints & traj_points, const ModifierData & modifier_data) = 0;
   std::string get_name() const { return name_; }
   rclcpp::Node * get_node_ptr() const { return node_ptr_; }
   std::shared_ptr<autoware_utils_debug::TimeKeeper> get_time_keeper() const { return time_keeper_; }

@@ -506,17 +506,21 @@ void MinimumRuleBasedPlannerNode::apply_modifiers(
   const auto modifier_data = make_modifier_data(input_data);
   for (auto & modifier : modifier_plugins_) {
     autoware_utils_debug::ScopedTimeTrack st_modifier(modifier->get_name(), *time_keeper_);
-    const auto stop_point = modifier->run(trajectory.points, modifier_data);
-    modifier->publish_planning_factor();
-    if (params_.debug.enable_modifier_trajectory) {
-      publish_debug_trajectory(modifier->get_name(), trajectory.points);
-    }
-    if (stop_point.has_value()) {
+    modifier->run(trajectory.points, modifier_data);
+    for (const auto & planning_factor : modifier->get_planning_factors()) {
+      if (planning_factor.control_points.empty()) {
+        continue;
+      }
+      const auto & control_point = planning_factor.control_points.front();
       go_planning_factor_interface_->add(
-        trajectory.points, input_data.odometry_ptr->pose.pose, stop_point->pose,
+        control_point.distance, control_point.pose,
         autoware_internal_planning_msgs::msg::PlanningFactor::STOP,
         autoware_internal_planning_msgs::msg::SafetyFactorArray{}, true, 0.0, 0.0,
         get_short_plugin_name(modifier->get_name()));
+    }
+    modifier->publish_planning_factor();
+    if (params_.debug.enable_modifier_trajectory) {
+      publish_debug_trajectory(modifier->get_name(), trajectory.points);
     }
   }
 }

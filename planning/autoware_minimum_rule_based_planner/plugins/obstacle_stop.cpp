@@ -68,20 +68,18 @@ void ObstacleStop::on_initialize(const MinimumRuleBasedPlannerParams & params)
   update_object_decel_map();
 }
 
-std::optional<StopPoint> ObstacleStop::run(
-  TrajectoryPoints & traj_points, const ModifierData & data)
+void ObstacleStop::run(TrajectoryPoints & traj_points, const ModifierData & data)
 {
-  if (!params_.enable) return std::nullopt;
+  if (!params_.enable) return;
 
   const auto detected = is_obstacle_detected(traj_points, data);
   publish_debug_string(!detected);
   publish_debug_data("obstacle_stop", data);
 
-  if (!detected) return std::nullopt;
-  if (!nearest_collision_point_) return std::nullopt;
+  if (!detected) return;
+  if (!nearest_collision_point_) return;
 
-  const auto stop_point = set_stop_point(traj_points, data);
-  return stop_point;
+  set_stop_point(traj_points, data);
 }
 
 bool ObstacleStop::is_obstacle_detected(
@@ -155,8 +153,7 @@ bool ObstacleStop::is_obstacle_detected(
   return nearest_collision_point_ != std::nullopt;
 }
 
-std::optional<StopPoint> ObstacleStop::set_stop_point(
-  TrajectoryPoints & traj_points, const ModifierData & data)
+void ObstacleStop::set_stop_point(TrajectoryPoints & traj_points, const ModifierData & data)
 {
   const auto stop_margin = params_.stop_margin + context_->vehicle_info.max_longitudinal_offset_m;
   const auto target_stop_point_arc_length = clamp_stop_point_arc_length(
@@ -180,8 +177,6 @@ std::optional<StopPoint> ObstacleStop::set_stop_point(
     get_node_ptr()->get_logger(), *get_clock(), 500,
     "[Backup Planner ObstacleStop] Inserted stop point at arc length %f m",
     target_stop_point_arc_length);
-
-  return StopPoint{stop_pose};
 }
 
 std::optional<CollisionPoint> ObstacleStop::check_predicted_objects(

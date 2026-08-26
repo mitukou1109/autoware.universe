@@ -134,19 +134,17 @@ void SurroundObstacleStop::update_params(const MinimumRuleBasedPlannerParams & p
   proximity_checker_->update_parameters(to_proximity_checker_parameters(params_));
 }
 
-std::optional<StopPoint> SurroundObstacleStop::run(
-  TrajectoryPoints & traj_points, const ModifierData & data)
+void SurroundObstacleStop::run(TrajectoryPoints & traj_points, const ModifierData & data)
 {
   proximity_check_result_ = std::nullopt;
 
   if (!is_stop_required(traj_points, data)) {
     publish_debug_string(false);
-    return std::nullopt;
+    return;
   }
 
-  const auto stop_point = set_stop_point(traj_points, data);
+  set_stop_point(traj_points, data);
   publish_debug_string(true);
-  return stop_point;
 }
 
 bool SurroundObstacleStop::check_inputs(const ModifierData & data) const
@@ -258,10 +256,9 @@ bool SurroundObstacleStop::is_stop_required(
   return is_obstacle_nearby(data);
 }
 
-std::optional<StopPoint> SurroundObstacleStop::set_stop_point(
-  TrajectoryPoints & traj_points, const ModifierData & data)
+void SurroundObstacleStop::set_stop_point(TrajectoryPoints & traj_points, const ModifierData & data)
 {
-  if (traj_points.empty()) return std::nullopt;
+  if (traj_points.empty()) return;
 
   const auto & ego_pose = data.odometry_ptr->pose.pose;
 
@@ -285,8 +282,6 @@ std::optional<StopPoint> SurroundObstacleStop::set_stop_point(
     get_node_ptr()->get_logger(), *get_clock(), 1000,
     "[Backup Planner SurroundObstacleStop] Inserted stop point at ego pose due to nearby "
     "obstacle.");
-
-  return StopPoint{stop_pose};
 }
 
 void SurroundObstacleStop::publish_debug_string(const bool is_active) const

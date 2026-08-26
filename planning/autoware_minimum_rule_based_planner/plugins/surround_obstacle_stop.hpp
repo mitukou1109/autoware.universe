@@ -39,7 +39,7 @@ class SurroundObstacleStop : public PluginInterface
 public:
   SurroundObstacleStop() = default;
 
-  std::optional<StopPoint> run(TrajectoryPoints & traj_points, const ModifierData & data) override;
+  void run(TrajectoryPoints & traj_points, const ModifierData & data) override;
 
   void update_params(const MinimumRuleBasedPlannerParams & params) override;
 
@@ -74,8 +74,7 @@ private:
     const std::string & target, const std::string & source, const rclcpp::Time & stamp,
     double duration_sec) const;
 
-  std::optional<StopPoint> set_stop_point(
-    TrajectoryPoints & traj_points, const ModifierData & data);
+  void set_stop_point(TrajectoryPoints & traj_points, const ModifierData & data);
 
   void publish_debug_string(bool is_active) const;
 };
